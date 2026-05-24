@@ -11,12 +11,18 @@ export default function LoginPage() {
   const [error,    setError]    = useState<string | null>(null);
   const [loading,  setLoading]  = useState(false);
 
+  // TODO: [Login-1] Wire up the form submit handler:
+  //   1. Call signIn("credentials", { email, password, redirect: false })
+  //   2. If result.error is set, show it in the `error` state
+  //   3. On success, router.push("/dashboard")
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    const result = await signIn("credentials", {
+    // TODO: [Login-1] replace this placeholder with the real signIn call
+    // console.log("TODO: call signIn with", { email, password });
+     const result = await signIn("credentials", {
       email,
       password,
       redirect: false,
@@ -37,6 +43,7 @@ export default function LoginPage() {
         <h1 className="text-2xl font-bold mb-2 text-center">Audit Tracker</h1>
         <p className="text-gray-500 text-sm text-center mb-6">Sign in to your account</p>
 
+        {/* TODO: [Login-2] Show the error message when `error` is non-null */}
         {error && (
           <p className="text-red-600 text-sm mb-4 text-center">{error}</p>
         )}

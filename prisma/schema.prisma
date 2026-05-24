@@ -11,27 +11,31 @@ model User {
   id     Int     @id @default(autoincrement())
   name   String  @db.NVarChar(100)
   email  String  @unique @db.NVarChar(100)
-  // TODO: add a passwordHash field once you implement real auth
-  // passwordHash String @db.NVarChar(255)
-  role   String  @db.NVarChar(50) // "Auditor" | "Admin"
+  role   String  @db.NVarChar(50)
   audits Audit[] @relation("AssignedAudits")
+
+  @@map("Users")
 }
 
 model Audit {
   id             Int      @id @default(autoincrement())
   clientName     String   @db.NVarChar(200)
-  standard       String   @db.NVarChar(100) // e.g. "ISO 9001"
+  standard       String   @db.NVarChar(100)
   startDate      DateTime @db.Date
   endDate        DateTime @db.Date
   assignedTo     Int
   assignedToUser User     @relation(fields: [assignedTo], references: [id], name: "AssignedAudits")
   tasks          Task[]
+
+  @@map("Audits")
 }
 
 model Task {
   id          Int    @id @default(autoincrement())
   description String @db.NVarChar(500)
-  status      String @db.NVarChar(50) // "pending" | "in-progress" | "done"
+  status      String @db.NVarChar(50)
   auditId     Int
   audit       Audit  @relation(fields: [auditId], references: [id], onDelete: Cascade)
+
+  @@map("Tasks")
 }
