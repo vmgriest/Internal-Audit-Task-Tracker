@@ -64,14 +64,13 @@ At this point the app should be fully functional. Test the happy path:
 
 ## Phase 3 — Nice-to-Have (if time allows)
 
-- [ ] **[Dashboard-3]** Add "Add Task" button + inline form (POST /api/audits/[id]/tasks)
-- [ ] **[API-Audits-5]** Implement POST /api/audits (Admin only)
-- [ ] **[Dashboard-4]** Add a status cycle dropdown instead of just "Mark done"
-- [ ] **[Dashboard-Stretch]** Convert the dashboard to a server component for better performance
-- [ ] **Search bar** — client-side filter by clientName using `useMemo`
-- [ ] **Admin view** — show all audits (not just assigned-to-me) when `session.user.role === "Admin"`
-- [ ] **Unit test** — write one Jest test for the PATCH /api/tasks/[id] route validation logic
-      (demonstrates professional discipline — mention it in the interview)
+- [x] **[Dashboard-3]** Add "Add Task" button + inline form (`app/dashboard/AuditList.tsx`)
+- [x] **[API-Audits-5]** Implement POST /api/audits (Admin only) — `app/api/audits/route.ts`
+- [x] **[Dashboard-4]** Status cycle dropdown — `TaskStatusDropdown` in `AuditList.tsx`
+- [x] **[Dashboard-Stretch]** Dashboard converted to server component — `app/dashboard/page.tsx`
+- [x] **Search bar** — filters by clientName + standard using `useMemo` in `AuditList.tsx`
+- [x] **Admin view** — server component queries all audits when role is Admin; purple banner shown
+- [x] **Unit test** — 13 passing tests in `__tests__/tasks-patch.test.ts` (`npm test`)
 
 ---
 

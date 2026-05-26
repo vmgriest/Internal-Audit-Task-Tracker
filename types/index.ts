@@ -12,13 +12,14 @@ export interface TaskDTO {
 }
 
 export interface AuditDTO {
-  id:             number;
-  clientName:     string;
-  standard:       string;
-  startDate:      string; // ISO date string
-  endDate:        string;
-  assignedTo:     number;
-  tasks:          TaskDTO[];
+  id:               number;
+  clientName:       string;
+  standard:         string;
+  startDate:        string; // ISO date string
+  endDate:          string;
+  assignedTo:       number;
+  assignedToUser?:  { id: number; name: string; email: string; role: string };
+  tasks:            TaskDTO[];
 }
 
 export interface UserDTO {

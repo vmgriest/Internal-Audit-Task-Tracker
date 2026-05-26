@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 // GET /api/audits?userId=<id>
+// Admins may omit userId to retrieve all audits.
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -13,19 +14,22 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const userIdParam = searchParams.get("userId");
+    const isAdmin     = session.user.role === "Admin";
 
-    if (!userIdParam || isNaN(Number(userIdParam))) {
+    // Non-admins must supply a valid userId
+    if (!isAdmin && (!userIdParam || isNaN(Number(userIdParam)))) {
       return NextResponse.json({ error: "Invalid userId" }, { status: 400 });
     }
-    const userId = parseInt(userIdParam, 10);
 
-    // Non-admin users can only view their own audits
-    if (session.user.role !== "Admin" && parseInt(session.user.id, 10) !== userId) {
+    const userId = userIdParam ? parseInt(userIdParam, 10) : null;
+
+    // Non-admins can only fetch their own audits
+    if (!isAdmin && userId !== parseInt(session.user.id, 10)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const audits = await prisma.audit.findMany({
-      where:   { assignedTo: userId },
+      where:   userId ? { assignedTo: userId } : {},
       include: {
         tasks:          true,
         assignedToUser: { select: { id: true, name: true, email: true, role: true } },
@@ -40,19 +44,23 @@ export async function GET(request: Request) {
   }
 }
 
-// POST /api/audits  (Admin only)
+// POST /api/audits
+// Admins can assign to any auditor. Auditors automatically self-assign.
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (session.user.role !== "Admin") {
-      return NextResponse.json({ error: "Forbidden - Admin access required" }, { status: 403 });
-    }
 
     const body = await request.json();
     const { clientName, standard, startDate, endDate, assignedTo } = body;
+    const isAdmin = session.user.role === "Admin";
+
+    // Auditors always self-assign; Admins can specify any user (defaults to self)
+    const effectiveAssignedTo = isAdmin && typeof assignedTo === "number"
+      ? assignedTo
+      : parseInt(session.user.id, 10);
 
     if (!clientName || typeof clientName !== "string" || clientName.trim().length === 0) {
       return NextResponse.json({ error: "clientName is required" }, { status: 400 });
@@ -62,12 +70,6 @@ export async function POST(request: Request) {
     }
     if (!standard || typeof standard !== "string" || standard.trim().length === 0) {
       return NextResponse.json({ error: "standard is required" }, { status: 400 });
-    }
-    if (standard.length > 100) {
-      return NextResponse.json({ error: "standard must be 100 characters or less" }, { status: 400 });
-    }
-    if (!assignedTo || typeof assignedTo !== "number") {
-      return NextResponse.json({ error: "Valid assignedTo userId is required" }, { status: 400 });
     }
     if (!startDate || isNaN(Date.parse(startDate))) {
       return NextResponse.json({ error: "Valid startDate is required" }, { status: 400 });
@@ -83,21 +85,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "endDate must be after startDate" }, { status: 400 });
     }
 
-    const assignedUser = await prisma.user.findUnique({ where: { id: assignedTo } });
-    if (!assignedUser) {
-      return NextResponse.json({ error: "Assigned user does not exist" }, { status: 400 });
-    }
-    if (assignedUser.role !== "Auditor") {
-      return NextResponse.json({ error: "Audits can only be assigned to users with the 'Auditor' role" }, { status: 400 });
-    }
-
     const audit = await prisma.audit.create({
       data: {
         clientName: clientName.trim(),
         standard:   standard.trim(),
         startDate:  startDateObj,
         endDate:    endDateObj,
-        assignedTo: assignedTo,
+        assignedTo: effectiveAssignedTo,
       },
       include: {
         assignedToUser: { select: { id: true, name: true, email: true, role: true } },

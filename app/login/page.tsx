@@ -4,95 +4,116 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
+async function quickSignIn(
+  email: string,
+  setLoading: (v: boolean) => void,
+  setError: (v: string | null) => void,
+  push: (path: string) => void
+) {
+  setLoading(true);
+  setError(null);
+  const result = await signIn("credentials", { email, password: "password", redirect: false });
+  if (result?.error) { setError("Sign in failed."); setLoading(false); }
+  else push("/dashboard");
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
   const [error,    setError]    = useState<string | null>(null);
   const [loading,  setLoading]  = useState(false);
+  const [showForm, setShowForm] = useState(false);
 
-  // TODO: [Login-1] Wire up the form submit handler:
-  //   1. Call signIn("credentials", { email, password, redirect: false })
-  //   2. If result.error is set, show it in the `error` state
-  //   3. On success, router.push("/dashboard")
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
-
-    // TODO: [Login-1] replace this placeholder with the real signIn call
-    // console.log("TODO: call signIn with", { email, password });
-     const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
-
-    if (result?.error) {
-      setError(result.error);
-    } else {
-      router.push("/dashboard");
-    }
-
-    setLoading(false);
+    const result = await signIn("credentials", { email, password, redirect: false });
+    if (result?.error) { setError("Invalid email or password."); setLoading(false); }
+    else router.push("/dashboard");
   }
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white rounded-xl shadow-md p-8 w-full max-w-sm">
-        <h1 className="text-2xl font-bold mb-2 text-center">Audit Tracker</h1>
-        <p className="text-gray-500 text-sm text-center mb-6">Sign in to your account</p>
+      <div className="bg-white rounded-xl shadow-md p-8 w-full max-w-sm space-y-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold">Audit Tracker</h1>
+          <p className="text-gray-500 text-sm mt-1">Choose an account to continue</p>
+        </div>
 
-        {/* TODO: [Login-2] Show the error message when `error` is non-null */}
         {error && (
-          <p className="text-red-600 text-sm mb-4 text-center">{error}</p>
+          <p className="text-red-600 text-sm text-center bg-red-50 rounded py-2">{error}</p>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1" htmlFor="email">
-              Email
-            </label>
-            {/* TODO: [Login-3] Bind value + onChange to the email state */}
-            <input
-              id="email"
-              type="email"
-              required
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="auditor@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1" htmlFor="password">
-              Password
-            </label>
-            {/* TODO: [Login-4] Bind value + onChange to the password state */}
-            <input
-              id="password"
-              type="password"
-              required
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
+        {/* One-click demo accounts */}
+        <div className="space-y-2">
+          <button
+            disabled={loading}
+            onClick={() => quickSignIn("auditor@example.com", setLoading, setError, router.push)}
+            className="w-full flex items-center gap-3 border rounded-lg px-4 py-3 hover:bg-gray-50 disabled:opacity-50 transition-colors text-left"
+          >
+            <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm flex-shrink-0">
+              V
+            </div>
+            <div>
+              <p className="font-medium text-sm">Vincent</p>
+              <p className="text-xs text-gray-400">Auditor</p>
+            </div>
+          </button>
 
           <button
-            type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-2 rounded-lg transition-colors"
+            onClick={() => quickSignIn("admin@example.com", setLoading, setError, router.push)}
+            className="w-full flex items-center gap-3 border rounded-lg px-4 py-3 hover:bg-gray-50 disabled:opacity-50 transition-colors text-left"
           >
-            {loading ? "Signing in…" : "Sign In"}
+            <div className="w-9 h-9 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-sm flex-shrink-0">
+              A
+            </div>
+            <div>
+              <p className="font-medium text-sm">Admin User</p>
+              <p className="text-xs text-gray-400">Admin</p>
+            </div>
           </button>
-        </form>
+        </div>
 
-        <p className="text-xs text-gray-400 text-center mt-6">
-          Demo: auditor@example.com / password
-        </p>
+        {/* Manual login (collapsed by default) */}
+        <div>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="w-full text-xs text-gray-400 hover:text-gray-600 py-1"
+          >
+            {showForm ? "▲ Hide manual login" : "▼ Sign in with email instead"}
+          </button>
+
+          {showForm && (
+            <form onSubmit={handleSubmit} className="space-y-3 mt-3">
+              <input
+                type="email"
+                required
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="password"
+                required
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-2 rounded-lg transition-colors text-sm"
+              >
+                {loading ? "Signing in…" : "Sign In"}
+              </button>
+            </form>
+          )}
+        </div>
       </div>
     </main>
   );

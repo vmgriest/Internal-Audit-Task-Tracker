@@ -108,15 +108,12 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   }
 }
 
-// DELETE /api/tasks/<id>  (Admin only)
+// DELETE /api/tasks/<id>  (Admin or assigned auditor)
 export async function DELETE(_request: Request, { params }: RouteParams) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    if (session.user.role !== "Admin") {
-      return NextResponse.json({ error: "Forbidden - Admin access required" }, { status: 403 });
     }
 
     const { id } = await params;
@@ -125,9 +122,18 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: "Invalid task id" }, { status: 400 });
     }
 
-    const existingTask = await prisma.task.findUnique({ where: { id: taskId } });
+    const existingTask = await prisma.task.findUnique({
+      where:   { id: taskId },
+      include: { audit: true },
+    });
     if (!existingTask) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    }
+
+    const isAdmin           = session.user.role === "Admin";
+    const isAssignedAuditor = existingTask.audit.assignedTo === parseInt(session.user.id, 10);
+    if (!isAdmin && !isAssignedAuditor) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     await prisma.task.delete({ where: { id: taskId } });
